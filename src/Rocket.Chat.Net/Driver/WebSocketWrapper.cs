@@ -5,6 +5,8 @@
     using Rocket.Chat.Net.Interfaces;
     using Rocket.Chat.Net.Portability.Websockets;
 
+    using Rocket.Chat.Net.Websockets;
+
     public class WebSocketWrapper : IWebSocketWrapper
     {
         private readonly PortableWebSocket _socket;

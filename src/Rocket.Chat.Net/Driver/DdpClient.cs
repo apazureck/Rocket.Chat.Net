@@ -1,4 +1,6 @@
-﻿namespace Rocket.Chat.Net.Driver
+﻿using System.Net.WebSockets;
+
+namespace Rocket.Chat.Net.Driver
 {
     using System;
     using System.Collections.Concurrent;
@@ -34,7 +36,7 @@
             var protocol = useSsl ? "wss" : "ws";
             Url = $"{protocol}://{baseUrl}/websocket";
 
-            _socket = new WebSocketWrapper(new PortableWebSocket(Url));
+            _socket = new WebSocketWrapper(new WebSocket(Url));
             AttachEvents();
         }
 

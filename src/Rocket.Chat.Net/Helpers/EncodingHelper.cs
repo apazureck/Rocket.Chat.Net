@@ -3,7 +3,7 @@
     using System;
     using System.IO;
 
-    using Rocket.Chat.Net.Portability.Crypto;
+    using Rocket.Chat.Net.Crypto;
 
     public static class EncodingHelper
     {
