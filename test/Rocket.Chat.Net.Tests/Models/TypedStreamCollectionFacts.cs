@@ -2,7 +2,7 @@
 {
     using FluentAssertions;
 
-    using Ploeh.AutoFixture;
+    using AutoFixture;
 
     using Rocket.Chat.Net.Collections;
     using Rocket.Chat.Net.Interfaces;

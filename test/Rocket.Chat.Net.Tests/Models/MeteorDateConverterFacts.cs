@@ -6,7 +6,7 @@
 
     using Newtonsoft.Json;
 
-    using Ploeh.AutoFixture;
+    using AutoFixture;
 
     using Rocket.Chat.Net.Helpers;
     using Rocket.Chat.Net.JsonConverters;

@@ -6,7 +6,7 @@
 
     using NSubstitute;
 
-    using Ploeh.AutoFixture;
+    using AutoFixture;
 
     using Rocket.Chat.Net.Driver;
     using Rocket.Chat.Net.Interfaces;

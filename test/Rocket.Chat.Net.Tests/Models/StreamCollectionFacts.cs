@@ -8,7 +8,7 @@
 
     using NSubstitute;
 
-    using Ploeh.AutoFixture;
+    using AutoFixture;
 
     using Rocket.Chat.Net.Collections;
     using Rocket.Chat.Net.Models.Collections;
