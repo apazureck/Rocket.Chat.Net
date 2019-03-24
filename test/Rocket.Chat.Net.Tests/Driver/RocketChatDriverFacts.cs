@@ -131,7 +131,7 @@
             Action action = () => _driver.LoginAsync(options).Wait();
 
             // 
-            action.ShouldThrow<NotSupportedException>();
+            action.Should().Throw<NotSupportedException>();
         }
 
         [Fact]

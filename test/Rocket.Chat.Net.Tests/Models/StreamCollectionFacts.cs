@@ -299,7 +299,7 @@
             Action action = () => collection.GetById<string>(fixture.Id);
 
             // Assert
-            action.ShouldThrow<ArgumentException>();
+            action.Should().Throw<ArgumentException>();
         }
 
         [Fact]

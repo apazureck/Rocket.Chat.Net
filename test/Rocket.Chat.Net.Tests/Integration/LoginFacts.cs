@@ -27,7 +27,7 @@
             Action action = () => RocketChatDriver.ConnectAsync().Wait();
 
             // Assert
-            action.ShouldThrow<Exception>();
+            action.Should().Throw<Exception>();
         }
 
         [Fact]
@@ -102,7 +102,7 @@
             Action action = () => RocketChatDriver.LoginAsync(new DummyLoginOption()).Wait();
 
             // Assert
-            action.ShouldThrow<NotSupportedException>();
+            action.Should().Throw<NotSupportedException>();
         }
     }
 }

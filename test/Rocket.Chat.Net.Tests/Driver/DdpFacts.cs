@@ -75,7 +75,7 @@ namespace Rocket.Chat.Net.Tests.Driver
             Action action = async () => await task;
 
             // Assert
-            action.ShouldNotThrow<OperationCanceledException>();
+            action.Should().NotThrow<OperationCanceledException>();
         }
 
         [Fact]

@@ -94,7 +94,7 @@
             var result = JsonConvert.DeserializeObject<RocketReactionConverterModel>(json);
 
             // Assert
-            result.Reactions.ShouldAllBeEquivalentTo(expected.Reactions);
+            result.Reactions.Should().AllBeEquivalentTo(expected.Reactions);
         }
     }
 }
