@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Portability\Rocket.Chat.Net.Portability\Contracts\PortableWebSocketBase.cs" Link="Contracts\PortableWebSocketBase.cs" />
+    <Compile Include="..\Portability\Rocket.Chat.Net.Portability\Contracts\ShaHelperBase.cs" Link="Contracts\ShaHelperBase.cs" />
+    <Compile Include="..\Portability\Rocket.Chat.Net.Portability\Websockets\PortableErrorEventArgs.cs" Link="Websockets\PortableErrorEventArgs.cs" />
+    <Compile Include="..\Portability\Rocket.Chat.Net.Portability\Websockets\PortableMessageReceivedEventArgs.cs" Link="Websockets\PortableMessageReceivedEventArgs.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Contracts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WebSocket4Net" Version="0.15.2" />
+  </ItemGroup>
+
+</Project>

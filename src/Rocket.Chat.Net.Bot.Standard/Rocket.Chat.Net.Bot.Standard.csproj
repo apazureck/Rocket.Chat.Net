@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rocket.Chat.Net.Standard\Rocket.Chat.Net.Standard.csproj" />
+  </ItemGroup>
+
+</Project>
