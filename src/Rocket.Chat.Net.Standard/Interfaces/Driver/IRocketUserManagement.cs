@@ -66,6 +66,8 @@ namespace Rocket.Chat.Net.Interfaces.Driver
         /// <returns></returns>
         Task SubscribeToFilteredUsersAsync(string username = "");
 
+        Task<JObject> GetPermissionsAsync();
+
         /// <summary>
         /// The currently logged in user's id
         /// </summary>

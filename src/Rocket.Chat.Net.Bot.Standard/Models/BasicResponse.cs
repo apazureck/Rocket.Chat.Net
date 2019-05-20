@@ -17,7 +17,12 @@
         /// </summary>
         public string RoomId { get; set; }
 
-        public BasicResponse(string message, string roomId)
+        /// <summary>
+        /// Creates a new basic response
+        /// </summary>
+        /// <param name="message">message to send</param>
+        /// <param name="roomId">room id or leave null if the response should go to the same room</param>
+        public BasicResponse(string message, string roomId = null)
         {
             Message = message;
             RoomId = roomId;

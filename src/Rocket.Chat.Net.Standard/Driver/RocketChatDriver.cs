@@ -37,7 +37,7 @@
 
         public string UserId { get; private set; }
         public string Username { get; private set; }
-
+        public string ServerUrl => _client.Url;
         public bool IsBot { get; set; }
 
         public RoomCollection Rooms => new RoomCollection(GetRoomsCollection(), GetRoomInfoCollection());
@@ -105,6 +105,7 @@
                     break;
                 case "changed":
                     collection.Changed(collectionResult.Id, collectionResult.Fields);
+                    RaiseCollectionChangedEvent(collectionResult.Name, collectionResult.Fields);
                     break;
                 case "removed":
                     collection.Removed(collectionResult.Id);
@@ -112,6 +113,12 @@
                 default:
                     throw new InvalidOperationException($"Encountered a unknown subscription update type {type}.");
             }
+        }
+
+        public event Action<string, JObject> CollectionChanged;
+        protected void RaiseCollectionChangedEvent(string name, JObject fields)
+        {
+            CollectionChanged?.Invoke(name, fields);
         }
 
         private void HandleRocketMessage(string type, JObject data)
@@ -177,10 +184,16 @@
             }
         }
 
+        public async Task<JObject> GetPermissionsAsync()
+        {
+            return await _client.CallAsync("permissions/get", TimeoutToken);
+        }
+
         public async Task SubscribeToRoomAsync(string roomId = null)
         {
             _logger.LogInformation($"Subscribing to Room: #{roomId ?? "ALLROOMS"}");
-            await _client.SubscribeAsync(MessageTopic, TimeoutToken, roomId, MessageSubscriptionLimit.ToString()).ConfigureAwait(false);
+            var result = await _client.CallAsync("rooms/get", TimeoutToken, JObject.Parse("{ \"$date\": 0 }"));
+            await _client.SubscribeAsync("", TimeoutToken, roomId, MessageSubscriptionLimit.ToString()).ConfigureAwait(false);
         }
 
         public async Task SubscribeToRoomInformationAsync(string roomName, RoomType type)
