@@ -1,9 +1,13 @@
-﻿namespace Rocket.Chat.Net.Driver
+﻿using Newtonsoft.Json;
+using System.Text;
+
+namespace Rocket.Chat.Net.Driver
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -20,6 +24,7 @@
     using Rocket.Chat.Net.Models.LoginOptions;
     using Rocket.Chat.Net.Models.MethodResults;
     using Rocket.Chat.Net.Models.SubscriptionResults;
+    using Rocket.Chat.Net.Standard.Models.RestApi.Responses;
 
     public class RocketChatDriver : IRocketChatDriver
     {
@@ -28,6 +33,9 @@
 
         private readonly IStreamCollectionDatabase _collectionDatabase;
         private readonly ILogger _logger;
+
+        public string PlainUrl { get; }
+
         private readonly IDdpClient _client;
 
         public event MessageReceived MessageReceived;
@@ -37,6 +45,7 @@
 
         public string UserId { get; private set; }
         public string Username { get; private set; }
+        private string Password { get; set; }
         public string ServerUrl => _client.Url;
         public bool IsBot { get; set; }
 
@@ -52,6 +61,7 @@
             _collectionDatabase = new StreamCollectionDatabase();
 
             _logger.LogInformation("Creating client...");
+            PlainUrl = url;
             _client = new DdpClient(url, useSsl, _logger);
             _client.DataReceivedRaw += ClientOnDataReceivedRaw;
             _client.DdpReconnect += OnDdpReconnect;
@@ -113,6 +123,67 @@
                 default:
                     throw new InvalidOperationException($"Encountered a unknown subscription update type {type}.");
             }
+        }
+
+        bool isRestApiLoggedIn = false;
+        string HttpUserId;
+        string RestAuthToken;
+
+        private async Task LogInToRestApi()
+        {
+            if (isRestApiLoggedIn)
+                return;
+
+            using (var http = new HttpClient())
+            {
+                var response = await http.PostAsync("http://" + PlainUrl + "/api/v1/login", new JsonContent(new
+                {
+                    user = Username,
+                    password = Password
+                }));
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException("Could not login user");
+                var resstr = await response.Content.ReadAsStringAsync();
+                var loginData = JsonConvert.DeserializeObject<RocketChatRestResponse<LoginResponseData>>(resstr);
+                if (loginData.Status != "success")
+                    throw new InvalidOperationException("Could not log in");
+
+                HttpUserId = loginData.Data.UserId;
+                RestAuthToken = loginData.Data.AuthToken;
+
+                isRestApiLoggedIn = true;
+            }
+        }
+
+        public async Task<List<FullUser>> GetUserList()
+        {
+            if (_client.SessionId == null)
+                throw new InvalidOperationException("Driver is not logged in");
+
+            await LogInToRestApi();
+
+            using (HttpClient http = new HttpClient())
+            {
+                var request = new HttpRequestMessage(HttpMethod.Get, "http://" + PlainUrl + "/api/v1/users.list");
+                request.Headers.Add("X-Auth-Token", RestAuthToken);
+                request.Headers.Add("X-User-Id", HttpUserId);
+                HttpResponseMessage response = await http.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException("Could not request User List");
+
+                string rs = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<UserResponse>(rs).Users;
+            }
+        }
+
+        private class UserResponse {
+            public List<FullUser> Users { get; set; }
+            public int Count { get; set; }
+            public int Offset { get; set; }
+            public int Total { get; set; }
+            public bool Success { get; set; }
         }
 
         public event Action<string, JObject> CollectionChanged;
@@ -216,17 +287,16 @@
         {
             await _client.SubscribeAndWaitAsync("fullUserData", TimeoutToken, username, 1).ConfigureAwait(false);
 
-            IStreamCollection data;
-            var success = _collectionDatabase.TryGetCollection("users", out data);
+            var success = _collectionDatabase.TryGetCollection("users", out IStreamCollection data);
             if (!success)
             {
                 return null;
             }
 
-            var userPair = data
+            KeyValuePair<string, FullUser> userPair = data
                 .Items<FullUser>()
                 .FirstOrDefault(x => x.Value.Username == username);
-            var user = userPair.Value;
+            FullUser user = userPair.Value;
             if (user != null)
             {
                 user.Id = userPair.Key;
@@ -242,23 +312,30 @@
 
         public async Task<MethodResult<LoginResult>> LoginAsync(ILoginOption loginOption)
         {
-            var ldapLogin = loginOption as LdapLoginOption;
-            if (ldapLogin != null)
+            if (loginOption is LdapLoginOption ldapLogin)
             {
-                return await LoginWithLdapAsync(ldapLogin.Username, ldapLogin.Password).ConfigureAwait(false);
+                Username = ldapLogin.Username;
+                Password = ldapLogin.Password;
+                var res = await LoginWithLdapAsync(ldapLogin.Username, ldapLogin.Password).ConfigureAwait(false);
+                await LogInToRestApi();
+                return res;
             }
-            var emailLogin = loginOption as EmailLoginOption;
-            if (emailLogin != null)
+            if (loginOption is EmailLoginOption emailLogin)
             {
-                return await LoginWithEmailAsync(emailLogin.Email, emailLogin.Password).ConfigureAwait(false);
+                Password = emailLogin.Password;
+                var res = await LoginWithEmailAsync(emailLogin.Email, emailLogin.Password).ConfigureAwait(false);
+                await LogInToRestApi();
+                return res;
             }
-            var usernameLogin = loginOption as UsernameLoginOption;
-            if (usernameLogin != null)
+            if (loginOption is UsernameLoginOption usernameLogin)
             {
-                return await LoginWithUsernameAsync(usernameLogin.Username, usernameLogin.Password).ConfigureAwait(false);
+                Username = usernameLogin.Username;
+                Password = usernameLogin.Password;
+                var res = await LoginWithUsernameAsync(usernameLogin.Username, usernameLogin.Password).ConfigureAwait(false);
+                await LogInToRestApi();
+                return res;
             }
-            var resumeLogin = loginOption as ResumeLoginOption;
-            if (resumeLogin != null)
+            if (loginOption is ResumeLoginOption resumeLogin)
             {
                 return await LoginResumeAsync(resumeLogin.Token).ConfigureAwait(false);
             }
@@ -644,8 +721,18 @@
             const int timeoutSeconds = 60;
             var source = new CancellationTokenSource();
             source.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
-
+            
             return source.Token;
         }
+    }
+}
+
+namespace System.Net.Http
+{
+    public class JsonContent : StringContent
+    {
+        public JsonContent(object obj) :
+            base(JsonConvert.SerializeObject(obj), Encoding.UTF8, "application/json")
+        { }
     }
 }

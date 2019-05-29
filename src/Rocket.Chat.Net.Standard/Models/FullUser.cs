@@ -16,6 +16,8 @@
 
         public string Username { get; set; }
 
+        public string Name { get; set; }
+
         public List<Email> Emails { get; set; }
 
         public string Status { get; set; }
