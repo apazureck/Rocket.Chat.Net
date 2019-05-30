@@ -129,6 +129,24 @@ namespace Rocket.Chat.Net.Driver
         string HttpUserId;
         string RestAuthToken;
 
+        public async Task<bool> CheckLogin(string username, string password)
+        {
+            using (var http = new HttpClient())
+            {
+                var response = await http.PostAsync("http://" + PlainUrl + "/api/v1/login", new JsonContent(new
+                {
+                    user = username,
+                    password
+                }));
+
+                if (!response.IsSuccessStatusCode)
+                    throw new InvalidOperationException("Could not login user");
+                var resstr = await response.Content.ReadAsStringAsync();
+                var loginData = JsonConvert.DeserializeObject<RocketChatRestResponse<LoginResponseData>>(resstr);
+                return loginData.Status == "success";
+            }
+        }
+
         private async Task LogInToRestApi()
         {
             if (isRestApiLoggedIn)

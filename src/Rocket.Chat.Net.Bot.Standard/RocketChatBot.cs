@@ -106,7 +106,11 @@
             }
 
             LoginToken = result.Result.Token;
+
+            await OnResumedAsync();
         }
+
+        protected virtual async Task OnResumedAsync() { }
 
         public async Task LogoutOtherClientsAsync()
         {
