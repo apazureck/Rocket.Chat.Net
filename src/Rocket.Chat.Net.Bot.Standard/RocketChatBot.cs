@@ -12,6 +12,7 @@
     using Rocket.Chat.Net.Driver;
     using Rocket.Chat.Net.Interfaces;
     using Rocket.Chat.Net.Models;
+    using Rocket.Chat.Net.Models.MethodResults;
 
     public abstract class RocketChatBot : IDisposable
     {
@@ -33,7 +34,7 @@
             Driver.CollectionChanged += SubscribedCollectionChanged;
         }
 
-        public RocketChatBot(string url, bool useSsl, ILogger logger = null)
+        public RocketChatBot(string url, bool useSsl, ILogger<RocketChatBot> logger = null)
             : this(new RocketChatDriver(url, useSsl, logger), logger)
         {
         }
@@ -179,18 +180,16 @@
             });
         }
 
-        protected async Task SendMessageAsync(IMessageResponse response)
+        protected async Task<MethodResult<RocketMessage>> SendMessageAsync(IMessageResponse response)
         {
-            var attachmentMessage = response as AttachmentResponse;
-            var basicMessage = response as BasicResponse;
 
-            if (attachmentMessage != null)
+            if (response is AttachmentResponse attachmentMessage)
             {
-                await Driver.SendCustomMessageAsync(attachmentMessage.Attachment, attachmentMessage.RoomId).ConfigureAwait(false);
+                return await Driver.SendCustomMessageAsync(attachmentMessage.Attachment, attachmentMessage.RoomId).ConfigureAwait(false);
             }
-            else if (basicMessage != null)
+            else if (response is BasicResponse basic)
             {
-                await Driver.SendMessageAsync(basicMessage.Message, basicMessage.RoomId).ConfigureAwait(false);
+                return await Driver.SendMessageAsync(basic.Message, basic.RoomId).ConfigureAwait(false);
             }
             else
             {
@@ -217,7 +216,14 @@
             logger.LogInformation("Reconnect requested...");
             if (LoginToken != null)
             {
-                ResumeAsync().Wait();
+                try
+                {
+                    ResumeAsync().Wait();
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Reconnect failed due to timeout.");
+                }
             }
         }
 
