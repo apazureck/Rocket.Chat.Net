@@ -90,8 +90,6 @@
 
         protected abstract Task ProcessRequest(string name, List<JObject> messageArgs);
 
-        private async void RespondAsync(IMessageResponse response) => await SendMessageAsync(response);
-
         public async Task ResumeAsync()
         {
             if (LoginToken == null)
@@ -100,7 +98,7 @@
             }
 
             logger.LogInformation($"Resuming session {LoginToken}.");
-            var result = await Driver.LoginResumeAsync(LoginToken).ConfigureAwait(false);
+            MethodResult<LoginResult> result = await Driver.LoginResumeAsync(LoginToken).ConfigureAwait(false);
             if (result.HasError)
             {
                 throw new Exception($"Resume failed: {result.Error.Message}.");
@@ -279,12 +277,15 @@
 
     public interface IResponse
     {
+        void OnSuccess(MethodResult<RocketMessage> result, IMessageResponse response);
         IMessageResponse RespondTo(IEnumerable<JObject> input);
     }
-    public abstract class Response<T> : IResponse where T : class, new()
+    public abstract class Response<Trequest> : IResponse where Trequest : class, new()
     {
-        protected abstract IMessageResponse RespondTo(T input);
+        public virtual void OnSuccess(MethodResult<RocketMessage> result, IMessageResponse response) { }
 
-        IMessageResponse IResponse.RespondTo(IEnumerable<JObject> input) => RespondTo(input.First().ToObject<T>());
+        protected abstract IMessageResponse RespondTo(Trequest input);
+
+        IMessageResponse IResponse.RespondTo(IEnumerable<JObject> input) => RespondTo(input.First().ToObject<Trequest>());
     }
 }
