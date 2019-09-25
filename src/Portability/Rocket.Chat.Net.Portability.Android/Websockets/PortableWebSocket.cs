@@ -12,7 +12,14 @@
 
         public PortableWebSocket(string url) : base(url)
         {
-            _socket = new WebSocket(url);
+            if (url.StartsWith("wss"))
+            {
+                _socket = new WebSocket(url, sslProtocols: SslProtocols.Tls12);
+            }
+            else
+            {
+                _socket = new WebSocket(url);
+            }
         }
 
         public override event EventHandler<PortableMessageReceivedEventArgs> MessageReceived
